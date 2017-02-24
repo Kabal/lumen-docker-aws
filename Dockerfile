@@ -1,5 +1,4 @@
 FROM php:7.0.11-fpm
-MAINTAINER Petter Kjelkenes <kjelkenes@gmail.com>
 
 RUN apt-get update \
   && apt-get install -y \
@@ -37,7 +36,7 @@ RUN docker-php-ext-install \
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer --version=1.2.0
 
 
-ENV APP_DIR "/src"
+ENV APP_DIR "/var/www/html"
 ENV PHPREDIS_VERSION 3.0.0
 ENV PHP_MEMORY_LIMIT 1G
 ENV PHP_PORT 9000
@@ -78,7 +77,7 @@ COPY resources/conf/auth.json /home/composer/
 # Create dir for www home user, to store .ssh keys.
 RUN mkdir -p /var/www
 
-WORKDIR /src
+WORKDIR /var/html/www
 
 RUN apt-get update && apt-get install -y gcc g++ unzip jq
 
