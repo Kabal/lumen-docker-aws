@@ -1,5 +1,5 @@
 #!/bin/bash
-WWW_DIR=/src
+WWW_DIR=/var/www/html
 
 
-echo "* * * * * /usr/local/bin/php /src/artisan schedule:run >> $WWW_DIR/storage/logs/cron.log" | crontab -
+echo "* * * * * /usr/local/bin/php /var/www/html/artisan schedule:run >> $WWW_DIR/storage/logs/cron.log" | crontab -
