@@ -112,7 +112,7 @@ foreach ($envToWrite as $key => $value) {
         $key = $value;
         $value = getenv($key);
     }
-    $envFile .= "$key=$value\n";
+    $envFile .= "$key='$value'\n";
 }
 
 

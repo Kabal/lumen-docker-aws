@@ -34,23 +34,23 @@ sed -i "s#GITHUB_OAUTH_TOKEN#${GITHUB_OAUTH_TOKEN}#" /home/composer/auth.json
 # deployment via git repostiry url
 # ssh keys are needed to be mapped as a volume.
 if [ ! -z "${APP_GIT_REPOSITORY}"]; then
-   if [ ! -f /src/composer.json ]; then
+   if [ ! -f /var/www/html/composer.json ]; then
        echo "Cloning branch ${APP_GIT_BRANCH} from ${APP_GIT_REPOSITORY}"
-       git clone -b "${APP_GIT_BRANCH}" "${APP_GIT_REPOSITORY}" /src
+       git clone -b "${APP_GIT_BRANCH}" "${APP_GIT_REPOSITORY}" /var/www/html/
    fi
    echo "Updating to latest version of ${APP_GIT_BRANCH}"
    git pull origin "${APP_GIT_BRANCH}"
 fi
 
-chown -R www-data:www-data /src
+chown -R www-data:www-data /var/www/html
 chown -R www-data:www-data /home/composer
 
 
 
 echo "Running composer"
 su -c "composer install --optimize-autoloader --prefer-dist" -s /bin/sh www-data
-if [ ! -f /src/composer.lock ]; then
-    echo "Could not find /var/html/www/composer.lock. Did you map Lumen root folder (containing composer.json) to docker container /var/html/www folder? Example: docker run .. -v /var/www/html/laravelproject:/var/www/html"
+if [ ! -f /var/www/html/composer.lock ]; then
+    echo "Could not find /var/www/html/composer.lock. Did you map Lumen root folder (containing composer.json) to docker container /var/www/html folder? Example: docker run .. -v /var/www/html/laravelproject:/var/www/html"
     exit 1
 fi
 
@@ -59,7 +59,7 @@ fi
 echo "Making docker-lumen bin files executable."
 chmod +x /usr/local/bin/setup-lumen-cron
 chmod +x /usr/local/bin/create-lumen-env-file.php
-chmod +x /src/artisan
+chmod +x /var/www/html/artisan
 
 
 
@@ -78,20 +78,22 @@ su -c '/usr/local/bin/create-lumen-env-file.php' -s /bin/sh www-data
 
 
 # Migrate database.
-#su -c "/src/artisan down" -s /bin/sh www-data
-su -c "/src/artisan storage:link" -s /bin/sh www-data
-su -c "/src/artisan migrate --force" -s /bin/sh www-data
+echo "Running artisan migration..."
+su -c "/var/www/html/artisan migrate --force" -s /bin/sh www-data
 
 echo "Correcting permissions"
 chown -R www-data:www-data /var/www/html
 chmod -R 0777 /var/www/html
 
-
+# important fix.  some bad files grab the environment varibales from the server itself, rather than .env - so lets make them match
+# this way we don't end up with stray untranslated things like this: Fn::GetAtt" : [ "MediaBucket", "DomainName"
+echo "Finalizing environment variables.  Setting local variables to match .env file in case anyone accesses them that way"
+source /tmp/envs/env_file
 
 rm /tmp/lumen-start-in-progress
 
 # Only start php-fpm if successful ...
-if [ -f /src/composer.lock ]; then
+if [ -f /var/www/html/composer.lock ]; then
    echo "Starting the cron service"
    /usr/sbin/cron
 
@@ -106,5 +108,5 @@ if [ -f /src/composer.lock ]; then
    /usr/local/sbin/php-fpm
 
 else
-    echo "ERROR: could not find /src/composer.lock in lumen php container.... Did you mount lumen root dir as a volume to /var/www/html? You should..."
+    echo "ERROR: could not find /var/www/html/composer.lock in lumen php container.... Did you mount lumen root dir as a volume to /var/www/html? You should..."
 fi
